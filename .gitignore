@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Uploads
+uploads/
+output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Redis
+dump.rdb
+
+# Logs
+logs/
+*.log
+
+# PyTorch models cache
+.cache/
