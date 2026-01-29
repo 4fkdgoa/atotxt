@@ -20,6 +20,7 @@ from typing import Optional
 
 from app.core.config import settings
 from app.models.schemas import (
+    MeetingType,
     SummaryResult,
     TaskStatus,
     Transcript,
@@ -63,13 +64,19 @@ async def process_audio_task(
     num_speakers: int | None = None,
     min_speakers: int | None = None,
     max_speakers: int | None = None,
+    meeting_type: MeetingType = MeetingType.GENERAL,
 ):
     """Process an audio file: transcribe + summarize.
 
     Runs in a thread pool to avoid blocking the event loop.
+
+    Args:
+        meeting_type: Type of meeting for specialized prompts.
+                      'general' for standard meetings,
+                      'it_standup' for IT standup/sprint meetings.
     """
     from app.services.gpu_detector import get_auto_config
-    from app.services.summarizer import summarize_transcript
+    from app.services.summarizer import summarize_transcript, summarize_it_standup
     from app.services.transcriber import transcribe_audio
 
     update_task(task_id, status=TaskStatus.PROCESSING)
@@ -100,11 +107,20 @@ async def process_audio_task(
         logger.info(f"[{task_id}] Transcription complete. {len(transcript.utterances)} utterances.")
 
         # Run summarization (async I/O-bound)
-        summary = await summarize_transcript(
-            transcript=transcript,
-            ollama_base_url=settings.ollama_base_url,
-            model=config.ollama_model,
-        )
+        # Use specialized prompt based on meeting type
+        if meeting_type == MeetingType.IT_STANDUP:
+            logger.info(f"[{task_id}] Using IT standup summarization prompt.")
+            summary = await summarize_it_standup(
+                transcript=transcript,
+                ollama_base_url=settings.ollama_base_url,
+                model=config.ollama_model,
+            )
+        else:
+            summary = await summarize_transcript(
+                transcript=transcript,
+                ollama_base_url=settings.ollama_base_url,
+                model=config.ollama_model,
+            )
 
         logger.info(f"[{task_id}] Summarization complete. {len(summary.topics)} topics.")
 

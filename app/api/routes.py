@@ -12,6 +12,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.core.config import settings
 from app.models.schemas import (
+    MeetingType,
     SystemInfo,
     TaskStatus,
     TaskStatusResponse,
@@ -38,10 +39,15 @@ async def upload_audio(
     num_speakers: Optional[int] = Form(None, description="Exact number of speakers (optional)"),
     min_speakers: Optional[int] = Form(None, description="Minimum number of speakers (optional)"),
     max_speakers: Optional[int] = Form(None, description="Maximum number of speakers (optional)"),
+    meeting_type: MeetingType = Form(MeetingType.GENERAL, description="Meeting type: 'general' or 'it_standup' for IT standup/sprint meetings"),
 ):
     """Upload an audio file for transcription and summarization.
 
     Returns a task ID immediately. Use GET /task/{task_id} to check progress.
+
+    Meeting Types:
+    - general: Standard meeting summarization (default)
+    - it_standup: IT standup/sprint meeting with tech lead pattern, issue tracking, blockers, action items with assignees
     """
     # Validate file extension
     ext = Path(file.filename or "").suffix.lower()
@@ -79,6 +85,7 @@ async def upload_audio(
             num_speakers=num_speakers,
             min_speakers=min_speakers,
             max_speakers=max_speakers,
+            meeting_type=meeting_type,
         )
     )
 
@@ -121,11 +128,16 @@ async def transcribe_sync(
     num_speakers: Optional[int] = Form(None, description="Exact number of speakers"),
     min_speakers: Optional[int] = Form(None, description="Minimum number of speakers"),
     max_speakers: Optional[int] = Form(None, description="Maximum number of speakers"),
+    meeting_type: MeetingType = Form(MeetingType.GENERAL, description="Meeting type: 'general' or 'it_standup'"),
 ):
     """Upload and transcribe synchronously. Blocks until complete.
 
     Use this for small files or when you need immediate results.
     For large files, use POST /upload instead.
+
+    Meeting Types:
+    - general: Standard meeting summarization (default)
+    - it_standup: IT standup/sprint meeting with specialized analysis
     """
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -151,6 +163,7 @@ async def transcribe_sync(
         num_speakers=num_speakers,
         min_speakers=min_speakers,
         max_speakers=max_speakers,
+        meeting_type=meeting_type,
     )
 
     task = get_task(task_id)

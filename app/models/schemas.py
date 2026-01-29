@@ -56,6 +56,55 @@ class SummaryResult(BaseModel):
     action_items: list[str] = Field(default_factory=list, description="Action items extracted")
 
 
+# --- IT Meeting Specific Schemas ---
+
+class MeetingType(str, Enum):
+    """Meeting type for prompt selection."""
+    GENERAL = "general"
+    IT_STANDUP = "it_standup"
+
+
+class TechOverview(BaseModel):
+    """Technical overview from the tech lead (usually SPEAKER_00)."""
+    description: str = Field("", description="Technical context/architecture discussed")
+    technologies: list[str] = Field(default_factory=list, description="Tech stack mentioned")
+
+
+class ITTopicSummary(BaseModel):
+    """Summary for a single topic in IT meetings."""
+    topic: str = Field(..., description="Topic name (e.g., 'Login API bug fix')")
+    summary: str = Field(..., description="Progress and content summary")
+    speakers: list[str] = Field(default_factory=list)
+    status: str = Field("in_progress", description="done | in_progress | blocked | planned")
+    issue_refs: list[str] = Field(default_factory=list, description="Issue/PR numbers")
+
+
+class Blocker(BaseModel):
+    """A blocker identified in the meeting."""
+    issue: str = Field(..., description="Blocker description")
+    owner: str = Field("", description="Owner speaker")
+    needs: str = Field("", description="Required support/resources")
+
+
+class ActionItem(BaseModel):
+    """Structured action item with assignee."""
+    task: str = Field(..., description="Task description")
+    assignee: str = Field("", description="Assignee (SPEAKER_XX or name)")
+    deadline: Optional[str] = Field(None, description="Deadline if mentioned")
+    priority: str = Field("medium", description="high | medium | low")
+
+
+class ITSummaryResult(BaseModel):
+    """Full summary result for IT standup/sprint meetings."""
+    overall_summary: str = Field("", description="Overall meeting summary")
+    tech_overview: Optional[TechOverview] = None
+    topics: list[ITTopicSummary] = Field(default_factory=list)
+    blockers: list[Blocker] = Field(default_factory=list)
+    action_items: list[ActionItem] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list, description="Decisions made")
+    next_steps: list[str] = Field(default_factory=list, description="Next steps")
+
+
 # --- API Response ---
 
 class TranscriptionResponse(BaseModel):
