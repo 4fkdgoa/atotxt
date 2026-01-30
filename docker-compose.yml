@@ -1,0 +1,98 @@
+# Docker Compose for atotxt - Audio to Text Service
+#
+# Architecture:
+#   - api: FastAPI server + WhisperX transcription
+#   - ollama: LLM for summarization
+#   - redis: Task queue backend
+#
+# Usage:
+#   CPU only:  docker compose up
+#   With GPU:  docker compose --profile gpu up
+#
+# For GPU, ensure nvidia-container-toolkit is installed:
+#   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+
+services:
+  # --- API Server (FastAPI + WhisperX) ---
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - REDIS_URL=redis://redis:6379/0
+      - WHISPER_DEVICE=cpu
+      - WHISPER_MODEL=base
+      - WHISPER_COMPUTE_TYPE=float32
+      - UPLOAD_DIR=/app/uploads
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      - ollama
+      - redis
+    restart: unless-stopped
+
+  # --- API Server with GPU support ---
+  api-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - REDIS_URL=redis://redis:6379/0
+      - WHISPER_DEVICE=cuda
+      - WHISPER_MODEL=auto
+      - WHISPER_COMPUTE_TYPE=auto
+      - UPLOAD_DIR=/app/uploads
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - uploads:/app/uploads
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    depends_on:
+      - ollama
+      - redis
+    profiles:
+      - gpu
+    restart: unless-stopped
+
+  # --- Ollama LLM Server ---
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # For GPU support, uncomment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # --- Redis (Task Queue) ---
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  uploads:
+  ollama_data:
+  redis_data:

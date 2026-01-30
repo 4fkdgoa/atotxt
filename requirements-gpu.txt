@@ -1,0 +1,7 @@
+# GPU-specific requirements (install AFTER requirements.txt)
+# PyTorch with CUDA support - adjust CUDA version as needed
+# For CUDA 12.x:
+# pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+#
+# For CUDA 11.8:
+# pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
