@@ -78,6 +78,7 @@ async def process_audio_task(
     from app.services.gpu_detector import get_auto_config
     from app.services.summarizer import summarize_transcript, summarize_it_standup
     from app.services.transcriber import transcribe_audio
+    from app.services.training_data import save_training_data
 
     update_task(task_id, status=TaskStatus.PROCESSING)
     logger.info(f"[{task_id}] Processing started: {audio_path}")
@@ -123,6 +124,14 @@ async def process_audio_task(
             )
 
         logger.info(f"[{task_id}] Summarization complete. {len(summary.topics)} topics.")
+
+        # Save training data for fine-tuning (if enabled)
+        save_training_data(
+            transcript=transcript,
+            summary=summary,
+            meeting_type=meeting_type,
+            task_id=task_id,
+        )
 
         update_task(
             task_id,

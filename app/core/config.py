@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # HuggingFace token (required for speaker diarization)
     hf_token: str = ""
 
+    # Training data collection (for fine-tuning)
+    save_training_data: bool = False
+    training_data_dir: str = "./training_data"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     @property
@@ -46,6 +50,12 @@ class Settings(BaseSettings):
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_size_mb * 1024 * 1024
+
+    @property
+    def training_data_path(self) -> Path:
+        path = Path(self.training_data_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
 
 settings = Settings()

@@ -25,6 +25,7 @@ from app.services.queue_manager import (
     get_task,
     process_audio_task,
 )
+from app.services.training_data import get_training_stats, export_for_finetuning
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -174,3 +175,34 @@ async def transcribe_sync(
         raise HTTPException(status_code=500, detail=task.error or "Processing failed")
 
     return task
+
+
+@router.get("/training/stats")
+async def training_stats():
+    """Get statistics about collected training data for fine-tuning."""
+    stats = get_training_stats()
+    return {
+        **stats,
+        "message": "파인튜닝 준비 완료!" if stats["ready_for_finetuning"] else f"데이터 수집 중... (최소 50개 필요, 현재 {stats['total']}개)",
+    }
+
+
+@router.post("/training/export")
+async def export_training_data(
+    meeting_type: Optional[MeetingType] = Form(None, description="Filter by meeting type (None for all)"),
+):
+    """Export collected training data as JSONL for fine-tuning."""
+    from datetime import datetime
+
+    filename = f"training_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
+    output_path = settings.training_data_path / filename
+
+    export_for_finetuning(
+        output_path=str(output_path),
+        meeting_type=meeting_type,
+    )
+
+    return {
+        "file": str(output_path),
+        "message": "내보내기 완료! 이 파일로 파인튜닝하세요.",
+    }
